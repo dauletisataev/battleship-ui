@@ -75,7 +75,7 @@ export const generateRandomRowAndColumnIndex = () => {
 
   return {
     rowIndex,
-    columnIndex
+    columnIndex,
   };
 };
 
@@ -145,4 +145,8 @@ export const getShipNameByCoordinates = (deployedShips, coordinates) => {
 export const isArraysEqual = (arr1, arr2) => {
   if (arr1.length !== arr2.length) return false;
   return arr1.sort().toString() === arr2.sort().toString();
+};
+
+export const getShortenedAddress = (address = "") => {
+  return `${address.substring(0, 6)}...${address.slice(-4)}`;
 };

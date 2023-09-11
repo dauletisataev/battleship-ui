@@ -1,9 +1,5 @@
-import Battleship from "@/Components/Battleship";
+import Battleship from "../components/Battleship";
 
 export default function Home() {
-  return (
-    <>
-      <Battleship />
-    </>
-  );
+  return <Battleship />;
 }

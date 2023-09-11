@@ -4,6 +4,37 @@
   margin: 0;
 }
 
+
+.main {
+  position: relative;
+}
+
+/* navbar component */
+.navbar__wallet {
+  display: flex;
+  -webkit-box-align: center;
+  align-items: center;
+  flex-direction: row;
+  -webkit-box-pack: center;
+  justify-content: center;
+  margin-left: 8px;
+  position: relative;
+  padding-left: 16px;
+  padding-right: 3px;
+  background: rgb(222, 223, 255);
+  height: 44px;
+  border-radius: 22px;
+}
+
+.navbar__wallet__title {
+  margin: 0px;
+  font-family: Kanit;
+  color: rgb(55, 55, 65);
+  font-weight: bold;
+  font-size: 16px;
+  line-height: 24px;
+}
+
 /* battship component start */
 
 .battleship__stage {
@@ -46,10 +77,9 @@
 
 /* TitleBar css starts */
 
-.battleship__titlebar {
+.navbar {
   position: absolute;
   width: 100vw;
-  height: 40px;
   background-color: #0d2038;
   left: 0px;
   top: 0px;
@@ -59,7 +89,7 @@
   justify-content: center;
 }
 
-.battleship__titlebar h5 {
+.navbar h5 {
   color: #fff;
   font-size: 20px;
 }

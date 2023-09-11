@@ -20,15 +20,18 @@ import {
   getRandomOcupiableBlock,
   generateRandomRowAndColumnIndex,
   getShipNameByCoordinates,
-  isArraysEqual
+  isArraysEqual,
 } from "../helpers/helper";
+import { joinGame } from "@/helpers/game";
+import { Wallet } from "ethers";
 
 const Battleship = () => {
   // comon states
-  const [openGame, setOpenGame] = useState(false);
+  const openGame = true;
   const [selectedShipToPlace, setSelectedShipToPlace] = useState(null);
   const [currentPlayer, setCurrentPlayer] = useState(CURRENT_PLAYER.player);
   const [hasGameStarted, setHasGameStarted] = useState(false);
+  const [currenPlayerWallet, setCurrentPlayerWallet] = useState<Wallet>(null);
 
   // player states
   const [playerAvailableShips, setPlayerAvailableShips] = useState(SHIPS);
@@ -50,7 +53,7 @@ const Battleship = () => {
     if (hasGameStarted && currentPlayer === CURRENT_PLAYER.computer) {
       setTimeout(() => {
         attackOnPlayerBoardByComputer();
-      }, [200]);
+      }, 200);
     }
   }, [hasGameStarted, currentPlayer]);
 
@@ -194,7 +197,7 @@ const Battleship = () => {
             isHorizontal,
             currentPlayer,
             attackedBlocks: [],
-            isShipSunk: false
+            isShipSunk: false,
           };
           setPlayerDeployedShips([...playerDeployedShips, deployableShipObj]);
 
@@ -218,6 +221,7 @@ const Battleship = () => {
     if (hasGameStarted) {
       Swal.fire("Are you sure to restart the game").then(() => resetGame());
     } else {
+      joinGame(playerDeployedShips, currenPlayerWallet);
       setHasGameStarted(true);
       deployShipsForComputer();
     }
@@ -241,7 +245,7 @@ const Battleship = () => {
           isHorizontal,
           currentPlayer,
           attackedBlocks: [],
-          isShipSunk: false
+          isShipSunk: false,
         };
         tempDeployedArr = [...tempDeployedArr, deployableShipObj];
         tempAvShip.shift();
@@ -267,12 +271,12 @@ const Battleship = () => {
         Swal.showLoading();
         const b = Swal.getHtmlContainer().querySelector("b");
         timerInterval = setInterval(() => {
-          b.textContent = Math.floor(Swal.getTimerLeft() / 1000);
+          b.textContent = Math.floor(Swal.getTimerLeft() / 1000) as any;
         }, 100);
       },
       willClose: () => {
         clearInterval(timerInterval);
-      }
+      },
     }).then((result) => {
       /* Read more about handling dismissals below */
       if (result.dismiss === Swal.DismissReason.timer) {
@@ -316,13 +320,13 @@ const Battleship = () => {
             return {
               ...ship,
               attackedBlocks: newAttackedBlocks,
-              isShipSunk
+              isShipSunk,
             };
           } else {
             return {
               ...ship,
               attackedBlocks: [`${rowIndex}${columnIndex}`],
-              isShipSunk: false
+              isShipSunk: false,
             };
           }
         } else {
@@ -332,7 +336,7 @@ const Battleship = () => {
     } else {
       newDeployedArr = [
         ...targetBoardShips,
-        { shipName: MISS_HIT, attackedBlocks: [`${rowIndex}${columnIndex}`] }
+        { shipName: MISS_HIT, attackedBlocks: [`${rowIndex}${columnIndex}`] },
       ];
     }
 
@@ -348,9 +352,7 @@ const Battleship = () => {
         : CURRENT_PLAYER.player
     );
   };
-  if (!openGame) {
-    return <StartPage onClick={() => setOpenGame(true)} />;
-  }
+
   return (
     <div className="battleship__stage">
       <Sound
@@ -359,7 +361,10 @@ const Battleship = () => {
         lossSoundRef={lossSoundRef}
         winSoundRef={winSoundRef}
       />
-      <TitleBar />
+      <TitleBar
+        wallet={currenPlayerWallet}
+        setWallet={setCurrentPlayerWallet}
+      />
       <Summary
         hasGameStarted={hasGameStarted}
         playerAvailableShips={playerAvailableShips}

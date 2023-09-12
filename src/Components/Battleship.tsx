@@ -21,6 +21,7 @@ import {
   isArraysEqual,
 } from "../helpers/helper";
 import {
+  endTurn,
   gameContractWithProvider,
   getUserHitCoordinates,
   handleReportHits,
@@ -277,13 +278,14 @@ const Battleship = () => {
   };
 
   const handleMissileAttackOnBoard = (rowIndex, columnIndex, clickedShip) => {
-    console.log("current player", CURRENT_PLAYER.player);
-    takeAShot(
-      router.query.address as string,
-      rowIndex,
-      columnIndex,
-      currenPlayerWallet
-    );
+    console.log("current player", currentPlayerRef.current);
+    if (currentPlayerRef.current == CURRENT_PLAYER.player)
+      takeAShot(
+        router.query.address as string,
+        rowIndex,
+        columnIndex,
+        currenPlayerWallet
+      );
     const cordinationXY = `${rowIndex}${columnIndex}`;
     let newDeployedArr = [];
     const targetBoardShips =
@@ -407,6 +409,7 @@ const Battleship = () => {
         "LastTurnReport",
         async (args) => {
           console.log("LastTurnReport event: ", args);
+          await endTurn(gameAddress as string, currenPlayerWallet);
           const missles = await getUserHitCoordinates(
             gameAddress as string,
             currenPlayerWallet.address

@@ -194,11 +194,14 @@ export const handleReportHits = async (gameAddress, signer: Wallet) => {
   });
 
   console.log("[handleReportHits] tx", res);
-
-  await endTurn(battleshipContractWithSigner, signer);
 };
 
-export const endTurn = async (battleshipContract, signer) => {
+export const endTurn = async (gameAddress, signer: Wallet) => {
+  const battleshipContract = new ethers.Contract(
+    gameAddress,
+    BattleShipGameJson.abi,
+    signer
+  );
   const encodedData = battleshipContract.interface.encodeFunctionData(
     "endTurn",
     []

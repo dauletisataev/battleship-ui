@@ -471,7 +471,6 @@ const Battleship = () => {
               <Axis direction="column" />
               <Board
                 hasGameStarted={hasGameStarted}
-                selectedShipToPlace={selectedShipToPlace}
                 onClickBoradSquare={onClickBoradSquare}
                 deployedShips={playerDeployedShipsRef.current}
                 boardOwner={CURRENT_PLAYER.player}
@@ -499,7 +498,6 @@ const Battleship = () => {
                 <Axis direction="column" />
                 <Board
                   hasGameStarted={hasGameStarted}
-                  selectedShipToPlace={selectedShipToPlace}
                   onClickBoradSquare={onClickBoradSquare}
                   deployedShips={computerDeployedShipsRef.current}
                   boardOwner={CURRENT_PLAYER.computer}

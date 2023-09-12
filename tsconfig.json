@@ -27,7 +27,7 @@
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx"
-, "src/pages/index.js"  ],
+, "src/pages/index.tsx", "src/Components/Board/BoardSquare/index.jsx", "src/Components/Board/index.jsx"  ],
   "exclude": [
     "node_modules"
   ]

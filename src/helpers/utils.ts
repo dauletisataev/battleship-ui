@@ -37,19 +37,36 @@ export async function signCoordinate(coord: Coordinate, signer: Signer) {
 
 export async function generateShipShotProof(
   player: Signer,
-  allPlayers: Array<string>,
+  enemy: string,
   battleshipGame: any
 ) {
   let shotReports = [];
-  for (const playerAddress of allPlayers) {
-    let playerShot = await battleshipGame.playerShots(playerAddress);
-    let { flatSig } = await signCoordinate(playerShot, player);
-    let report: ShipShotProof = {
-      signature: flatSig,
-      shotBy: playerAddress,
-    };
-    shotReports.push(report);
-  }
+  let playerShot = await battleshipGame.playerShots(enemy);
+  let { flatSig } = await signCoordinate(playerShot, player);
+  let report: ShipShotProof = {
+    signature: flatSig,
+    shotBy: enemy,
+  };
+  shotReports.push(report);
 
   return shotReports;
 }
+
+export const getCurrentUser = async () => {
+  const storedWallet = localStorage.getItem("wallet");
+  if (storedWallet) {
+    const parsedStoredWallet = JSON.parse(storedWallet);
+    const newWallet = new Wallet(parsedStoredWallet.privateKey);
+    return newWallet;
+  } else {
+    const newWallet = Wallet.createRandom();
+    localStorage.setItem(
+      "wallet",
+      JSON.stringify({
+        address: newWallet.address,
+        privateKey: newWallet.privateKey,
+      })
+    );
+    return newWallet;
+  }
+};

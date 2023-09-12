@@ -7,9 +7,7 @@ const TitleBar = ({ wallet, setWallet }) => {
     const storedWallet = localStorage.getItem("wallet");
     if (storedWallet) {
       const parsedStoredWallet = JSON.parse(storedWallet);
-      const newWallet = new Wallet(
-        "0x82eb247ac6a2f290181f4ae7edc05845205c430a8a9e82e99a99e53bc09c17ce"
-      );
+      const newWallet = new Wallet(parsedStoredWallet.privateKey);
       setWallet(newWallet);
     } else {
       const newWallet = Wallet.createRandom();

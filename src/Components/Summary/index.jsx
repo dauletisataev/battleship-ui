@@ -48,7 +48,7 @@ const index = ({
       </div>
       {playerAvailableShips.length === 0 ? (
         <button className="summary__btn" onClick={handleGameStart}>
-          {hasGameStarted ? "Restart Game" : "Start Game"}
+          {hasGameStarted ? "Restart Game" : "Join Game"}
         </button>
       ) : null}
     </div>

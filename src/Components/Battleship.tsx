@@ -1,9 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import React, { useEffect, useState, useRef } from "react";
-
+import React, { useEffect, useState, useRef, useCallback } from "react";
+import { useRouter } from "next/router";
 import Swal from "sweetalert2";
-
-import StartPage from "./startPage";
 
 import Axis from "./Axis";
 import Board from "./Board";
@@ -22,27 +20,35 @@ import {
   getShipNameByCoordinates,
   isArraysEqual,
 } from "../helpers/helper";
-import { joinGame } from "@/helpers/game";
+import {
+  gameContractWithProvider,
+  getUserHitCoordinates,
+  handleReportHits,
+  joinGame,
+  takeAShot,
+} from "@/helpers/game";
 import { Wallet } from "ethers";
 
 const Battleship = () => {
   // comon states
-  const openGame = true;
+  const router = useRouter();
+
   const [selectedShipToPlace, setSelectedShipToPlace] = useState(null);
-  const [currentPlayer, setCurrentPlayer] = useState(CURRENT_PLAYER.player);
+  const currentPlayerRef = useRef(CURRENT_PLAYER.player);
   const [hasGameStarted, setHasGameStarted] = useState(false);
   const [currenPlayerWallet, setCurrentPlayerWallet] = useState<Wallet>(null);
+  const [gameAddress, setGameAddress] = useState("");
 
   // player states
   const [playerAvailableShips, setPlayerAvailableShips] = useState(SHIPS);
   const [playersSelectedAxis, setPlayersSelectedAxis] = useState(
     AXIS.horizontal
   );
-  const [playerDeployedShips, setPlayerDeployedShips] = useState([]);
+  const playerDeployedShipsRef = useRef([]);
 
   // computer states
   const [computerAvailableShips, setComputerAvailableShips] = useState(SHIPS);
-  const [computerDeployedShips, setComputerDeployedShips] = useState([]);
+  const computerDeployedShipsRef = useRef([]);
 
   const sunkSoundRef = useRef(null);
   const clickSoundRef = useRef(null);
@@ -50,19 +56,15 @@ const Battleship = () => {
   const winSoundRef = useRef(null);
 
   useEffect(() => {
-    if (hasGameStarted && currentPlayer === CURRENT_PLAYER.computer) {
-      setTimeout(() => {
-        attackOnPlayerBoardByComputer();
-      }, 200);
-    }
-  }, [hasGameStarted, currentPlayer]);
-
-  useEffect(() => {
     if (hasGameStarted) {
-      checkForWinner(computerDeployedShips, CURRENT_PLAYER.computer);
-      checkForWinner(playerDeployedShips, CURRENT_PLAYER.player);
+      checkForWinner(computerDeployedShipsRef.current, CURRENT_PLAYER.computer);
+      checkForWinner(playerDeployedShipsRef.current, CURRENT_PLAYER.player);
     }
-  }, [hasGameStarted, computerDeployedShips, playerDeployedShips]);
+  }, [
+    hasGameStarted,
+    computerDeployedShipsRef.current,
+    playerDeployedShipsRef.current,
+  ]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const checkForWinner = (ships, player) => {
@@ -128,11 +130,11 @@ const Battleship = () => {
     setComputerAvailableShips(SHIPS);
 
     setSelectedShipToPlace(null);
-    setCurrentPlayer(CURRENT_PLAYER.player);
+    currentPlayerRef.current = CURRENT_PLAYER.player;
     setHasGameStarted(false);
     setPlayersSelectedAxis(AXIS.horizontal);
-    setPlayerDeployedShips([]);
-    setComputerDeployedShips([]);
+    playerDeployedShipsRef.current = [];
+    computerDeployedShipsRef.current = [];
   };
 
   const handleSelectShipToPlace = (ship) => {
@@ -144,26 +146,19 @@ const Battleship = () => {
     setSelectedShipToPlace(null);
   };
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const attackOnPlayerBoardByComputer = () => {
-    const { rowIndex, columnIndex } = generateRandomRowAndColumnIndex();
-    const { shipName } = isPlaceTakenByOtherShip(
-      playerAvailableShips,
-      `${rowIndex}${columnIndex}`
-    );
-    handleMissileAttackOnBoard(rowIndex, columnIndex, shipName);
-  };
-
   const onClickBoradSquare = ({ rowIndex, columnIndex, clickedShip }) => {
     if (hasGameStarted) {
-      if (currentPlayer === CURRENT_PLAYER.player) {
+      if (currentPlayerRef.current === CURRENT_PLAYER.player) {
         playSound("click");
         handleMissileAttackOnBoard(rowIndex, columnIndex, clickedShip);
       }
 
       return;
     }
-    if (!hasGameStarted && playerDeployedShips.length === SHIPS.length) {
+    if (
+      !hasGameStarted &&
+      playerDeployedShipsRef.current.length === SHIPS.length
+    ) {
       Swal.fire("Its time to fire the missiles captain");
     } else {
       if (selectedShipToPlace) {
@@ -184,8 +179,10 @@ const Battleship = () => {
           );
 
           if (
-            isPlaceTakenByOtherShip(playerDeployedShips, occupiedBlocks)
-              .isPlaceTaken
+            isPlaceTakenByOtherShip(
+              playerDeployedShipsRef.current,
+              occupiedBlocks
+            ).isPlaceTaken
           ) {
             Swal.fire("Block already taken!!");
             return;
@@ -195,11 +192,14 @@ const Battleship = () => {
             shipLength: selectedShipToPlace.shipLength,
             occupiedBlocks,
             isHorizontal,
-            currentPlayer,
+            currentPlayer: currentPlayerRef.current,
             attackedBlocks: [],
             isShipSunk: false,
           };
-          setPlayerDeployedShips([...playerDeployedShips, deployableShipObj]);
+          playerDeployedShipsRef.current = [
+            ...playerDeployedShipsRef.current,
+            deployableShipObj,
+          ];
 
           const newPlayerAvailableShips = playerAvailableShips.filter(
             (ship) => ship.name !== selectedShipToPlace.name
@@ -221,7 +221,11 @@ const Battleship = () => {
     if (hasGameStarted) {
       Swal.fire("Are you sure to restart the game").then(() => resetGame());
     } else {
-      joinGame(playerDeployedShips, currenPlayerWallet);
+      joinGame(
+        router.query.address as string,
+        playerDeployedShipsRef.current,
+        currenPlayerWallet
+      );
       setHasGameStarted(true);
       deployShipsForComputer();
     }
@@ -243,7 +247,7 @@ const Battleship = () => {
           shipLength: tempAvShip[0].shipLength,
           occupiedBlocks: block,
           isHorizontal,
-          currentPlayer,
+          currentPlayer: currentPlayerRef.current,
           attackedBlocks: [],
           isShipSunk: false,
         };
@@ -254,7 +258,7 @@ const Battleship = () => {
 
     if (tempDeployedArr.length === 4) {
       setComputerAvailableShips([]);
-      setComputerDeployedShips(tempDeployedArr);
+      computerDeployedShipsRef.current = tempDeployedArr;
       startAttackNow();
     }
   };
@@ -285,18 +289,25 @@ const Battleship = () => {
   };
 
   const handleMissileAttackOnBoard = (rowIndex, columnIndex, clickedShip) => {
+    console.log("current player", CURRENT_PLAYER.player);
+    takeAShot(
+      router.query.address as string,
+      rowIndex,
+      columnIndex,
+      currenPlayerWallet
+    );
     const cordinationXY = `${rowIndex}${columnIndex}`;
     let newDeployedArr = [];
     const targetBoardShips =
-      currentPlayer === CURRENT_PLAYER.player
-        ? computerDeployedShips
-        : playerDeployedShips;
+      currentPlayerRef.current === CURRENT_PLAYER.player
+        ? computerDeployedShipsRef.current
+        : playerDeployedShipsRef.current;
     let targetShipName = clickedShip;
 
-    if (currentPlayer === CURRENT_PLAYER.computer) {
+    if (currentPlayerRef.current === CURRENT_PLAYER.computer) {
       // check if any ship available
       targetShipName = getShipNameByCoordinates(
-        playerDeployedShips,
+        playerDeployedShipsRef.current,
         cordinationXY
       );
     }
@@ -340,18 +351,95 @@ const Battleship = () => {
       ];
     }
 
-    if (currentPlayer === CURRENT_PLAYER.player) {
-      setComputerDeployedShips(newDeployedArr);
+    if (currentPlayerRef.current === CURRENT_PLAYER.player) {
+      computerDeployedShipsRef.current = newDeployedArr;
     } else {
-      setPlayerDeployedShips(newDeployedArr);
+      playerDeployedShipsRef.current = newDeployedArr;
     }
-
-    setCurrentPlayer(
-      currentPlayer === CURRENT_PLAYER.player
+    // changing current player
+    console.log(
+      "changing current player",
+      currentPlayerRef.current === CURRENT_PLAYER.player
         ? CURRENT_PLAYER.computer
         : CURRENT_PLAYER.player
     );
+
+    currentPlayerRef.current =
+      currentPlayerRef.current === CURRENT_PLAYER.player
+        ? CURRENT_PLAYER.computer
+        : CURRENT_PLAYER.player;
   };
+
+  const handleMissleFromEnemy = (rowIndex, columnIndex) => {
+    console.log("handleMissleFromEnemy: ", rowIndex, columnIndex);
+    const { shipName } = isPlaceTakenByOtherShip(
+      playerDeployedShipsRef.current,
+      `${rowIndex}${columnIndex}`
+    );
+    handleMissileAttackOnBoard(rowIndex, columnIndex, shipName);
+  };
+
+  const recoverGameFromLocalstrorage = async (gameAddress: string) => {
+    console.log("recovering game from localstorage");
+
+    const storedGameAddress = localStorage.getItem("gameAddress");
+    console.log("storedGameAddress: ", storedGameAddress);
+    console.log("gameAddress: ", gameAddress);
+
+    const storedPlayerShips = localStorage.getItem("playerDeployedShips");
+    if (
+      storedGameAddress &&
+      storedGameAddress == gameAddress &&
+      storedPlayerShips
+    ) {
+      const parsedShips = JSON.parse(storedPlayerShips);
+      console.log("parsedShips: ", parsedShips);
+      setGameAddress(gameAddress);
+      playerDeployedShipsRef.current = parsedShips;
+      setHasGameStarted(true);
+    }
+  };
+
+  useEffect(() => {
+    if (gameAddress) {
+      console.log("listining events on: ", router.query.address);
+
+      gameContractWithProvider(gameAddress).on("GameStarted", (args) => {
+        console.log("GameStarted event: ", args);
+      });
+
+      gameContractWithProvider(gameAddress).on("LastTurnShot", (args) => {
+        console.log("LastTurnShot event: ", args);
+        handleReportHits(gameAddress as string, currenPlayerWallet);
+      });
+
+      gameContractWithProvider(gameAddress).on(
+        "LastTurnReport",
+        async (args) => {
+          console.log("LastTurnReport event: ", args);
+          const missles = await getUserHitCoordinates(
+            gameAddress as string,
+            currenPlayerWallet.address
+          );
+          //handleMissleFromEnemy for each missle
+          missles.forEach((missle) => {
+            handleMissleFromEnemy(missle.x, missle.y);
+          });
+        }
+      );
+    }
+
+    return () => {
+      gameContractWithProvider(gameAddress).removeAllListeners();
+    };
+  }, [gameAddress]);
+
+  useEffect(() => {
+    if (router.query.address) {
+      setGameAddress(router.query.address as string);
+      recoverGameFromLocalstrorage(router.query.address as string);
+    }
+  }, [router.query.address]);
 
   return (
     <div className="battleship__stage">
@@ -368,10 +456,10 @@ const Battleship = () => {
       <Summary
         hasGameStarted={hasGameStarted}
         playerAvailableShips={playerAvailableShips}
-        playerDeployedShips={playerDeployedShips}
-        computerDeployedShips={computerDeployedShips}
+        playerDeployedShips={playerDeployedShipsRef.current}
+        computerDeployedShips={computerDeployedShipsRef.current}
         handleGameStart={handleGameStart}
-        currentPlayer={currentPlayer}
+        currentPlayer={currentPlayerRef.current}
       />
 
       <div className="battleship__content">
@@ -385,7 +473,7 @@ const Battleship = () => {
                 hasGameStarted={hasGameStarted}
                 selectedShipToPlace={selectedShipToPlace}
                 onClickBoradSquare={onClickBoradSquare}
-                deployedShips={playerDeployedShips}
+                deployedShips={playerDeployedShipsRef.current}
                 boardOwner={CURRENT_PLAYER.player}
               />
             </div>
@@ -413,7 +501,7 @@ const Battleship = () => {
                   hasGameStarted={hasGameStarted}
                   selectedShipToPlace={selectedShipToPlace}
                   onClickBoradSquare={onClickBoradSquare}
-                  deployedShips={computerDeployedShips}
+                  deployedShips={computerDeployedShipsRef.current}
                   boardOwner={CURRENT_PLAYER.computer}
                 />
               </div>

@@ -44,11 +44,11 @@ const Battleship = () => {
   const [playersSelectedAxis, setPlayersSelectedAxis] = useState(
     AXIS.horizontal
   );
-  const playerDeployedShipsRef = useRef([]);
+  const [playerDeployedShips, setPlayerDeployedShips] = useState([]);
 
   // computer states
   const [computerAvailableShips, setComputerAvailableShips] = useState(SHIPS);
-  const computerDeployedShipsRef = useRef([]);
+  const [computerDeployedShips, setComputerDeployedShips] = useState([]);
 
   const sunkSoundRef = useRef(null);
   const clickSoundRef = useRef(null);
@@ -57,14 +57,10 @@ const Battleship = () => {
 
   useEffect(() => {
     if (hasGameStarted) {
-      checkForWinner(computerDeployedShipsRef.current, CURRENT_PLAYER.computer);
-      checkForWinner(playerDeployedShipsRef.current, CURRENT_PLAYER.player);
+      checkForWinner(computerDeployedShips, CURRENT_PLAYER.computer);
+      checkForWinner(playerDeployedShips, CURRENT_PLAYER.player);
     }
-  }, [
-    hasGameStarted,
-    computerDeployedShipsRef.current,
-    playerDeployedShipsRef.current,
-  ]);
+  }, [hasGameStarted, computerDeployedShips, playerDeployedShips]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const checkForWinner = (ships, player) => {
@@ -133,8 +129,8 @@ const Battleship = () => {
     currentPlayerRef.current = CURRENT_PLAYER.player;
     setHasGameStarted(false);
     setPlayersSelectedAxis(AXIS.horizontal);
-    playerDeployedShipsRef.current = [];
-    computerDeployedShipsRef.current = [];
+    setPlayerDeployedShips([]);
+    setComputerDeployedShips([]);
   };
 
   const handleSelectShipToPlace = (ship) => {
@@ -155,10 +151,7 @@ const Battleship = () => {
 
       return;
     }
-    if (
-      !hasGameStarted &&
-      playerDeployedShipsRef.current.length === SHIPS.length
-    ) {
+    if (!hasGameStarted && playerDeployedShips.length === SHIPS.length) {
       Swal.fire("Its time to fire the missiles captain");
     } else {
       if (selectedShipToPlace) {
@@ -179,10 +172,8 @@ const Battleship = () => {
           );
 
           if (
-            isPlaceTakenByOtherShip(
-              playerDeployedShipsRef.current,
-              occupiedBlocks
-            ).isPlaceTaken
+            isPlaceTakenByOtherShip(playerDeployedShips, occupiedBlocks)
+              .isPlaceTaken
           ) {
             Swal.fire("Block already taken!!");
             return;
@@ -196,10 +187,7 @@ const Battleship = () => {
             attackedBlocks: [],
             isShipSunk: false,
           };
-          playerDeployedShipsRef.current = [
-            ...playerDeployedShipsRef.current,
-            deployableShipObj,
-          ];
+          setPlayerDeployedShips([...playerDeployedShips, deployableShipObj]);
 
           const newPlayerAvailableShips = playerAvailableShips.filter(
             (ship) => ship.name !== selectedShipToPlace.name
@@ -223,7 +211,7 @@ const Battleship = () => {
     } else {
       joinGame(
         router.query.address as string,
-        playerDeployedShipsRef.current,
+        playerDeployedShips,
         currenPlayerWallet
       );
       setHasGameStarted(true);
@@ -258,7 +246,7 @@ const Battleship = () => {
 
     if (tempDeployedArr.length === 4) {
       setComputerAvailableShips([]);
-      computerDeployedShipsRef.current = tempDeployedArr;
+      setComputerDeployedShips(tempDeployedArr);
       startAttackNow();
     }
   };
@@ -300,14 +288,14 @@ const Battleship = () => {
     let newDeployedArr = [];
     const targetBoardShips =
       currentPlayerRef.current === CURRENT_PLAYER.player
-        ? computerDeployedShipsRef.current
-        : playerDeployedShipsRef.current;
+        ? computerDeployedShips
+        : playerDeployedShips;
     let targetShipName = clickedShip;
 
     if (currentPlayerRef.current === CURRENT_PLAYER.computer) {
       // check if any ship available
       targetShipName = getShipNameByCoordinates(
-        playerDeployedShipsRef.current,
+        playerDeployedShips,
         cordinationXY
       );
     }
@@ -352,9 +340,9 @@ const Battleship = () => {
     }
 
     if (currentPlayerRef.current === CURRENT_PLAYER.player) {
-      computerDeployedShipsRef.current = newDeployedArr;
+      setComputerDeployedShips(newDeployedArr);
     } else {
-      playerDeployedShipsRef.current = newDeployedArr;
+      setPlayerDeployedShips(newDeployedArr);
     }
     // changing current player
     console.log(
@@ -371,12 +359,14 @@ const Battleship = () => {
   };
 
   const handleMissleFromEnemy = (rowIndex, columnIndex) => {
-    console.log("handleMissleFromEnemy: ", rowIndex, columnIndex);
-    const { shipName } = isPlaceTakenByOtherShip(
-      playerDeployedShipsRef.current,
-      `${rowIndex}${columnIndex}`
-    );
-    handleMissileAttackOnBoard(rowIndex, columnIndex, shipName);
+    setTimeout(() => {
+      console.log("handleMissleFromEnemy: ", rowIndex, columnIndex);
+      const { shipName } = isPlaceTakenByOtherShip(
+        playerDeployedShips,
+        `${rowIndex}${columnIndex}`
+      );
+      handleMissileAttackOnBoard(rowIndex, columnIndex, shipName);
+    }, 0);
   };
 
   const recoverGameFromLocalstrorage = async (gameAddress: string) => {
@@ -395,7 +385,7 @@ const Battleship = () => {
       const parsedShips = JSON.parse(storedPlayerShips);
       console.log("parsedShips: ", parsedShips);
       setGameAddress(gameAddress);
-      playerDeployedShipsRef.current = parsedShips;
+      setPlayerDeployedShips(parsedShips);
       setHasGameStarted(true);
     }
   };
@@ -456,8 +446,8 @@ const Battleship = () => {
       <Summary
         hasGameStarted={hasGameStarted}
         playerAvailableShips={playerAvailableShips}
-        playerDeployedShips={playerDeployedShipsRef.current}
-        computerDeployedShips={computerDeployedShipsRef.current}
+        playerDeployedShips={playerDeployedShips}
+        computerDeployedShips={computerDeployedShips}
         handleGameStart={handleGameStart}
         currentPlayer={currentPlayerRef.current}
       />
@@ -471,8 +461,9 @@ const Battleship = () => {
               <Axis direction="column" />
               <Board
                 hasGameStarted={hasGameStarted}
+                selectedShipToPlace={selectedShipToPlace}
                 onClickBoradSquare={onClickBoradSquare}
-                deployedShips={playerDeployedShipsRef.current}
+                deployedShips={playerDeployedShips}
                 boardOwner={CURRENT_PLAYER.player}
               />
             </div>
@@ -498,8 +489,9 @@ const Battleship = () => {
                 <Axis direction="column" />
                 <Board
                   hasGameStarted={hasGameStarted}
+                  selectedShipToPlace={selectedShipToPlace}
                   onClickBoradSquare={onClickBoradSquare}
-                  deployedShips={computerDeployedShipsRef.current}
+                  deployedShips={computerDeployedShips}
                   boardOwner={CURRENT_PLAYER.computer}
                 />
               </div>

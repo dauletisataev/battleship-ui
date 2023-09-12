@@ -51,7 +51,6 @@ export const getOccupiableBlocks = (
 };
 
 export const isPlaceTakenByOtherShip = (deployedShips, occupiedBlocks) => {
-  console.log("deployedShips", deployedShips);
   let isPlaceTaken = false;
   let shipName = "";
 
